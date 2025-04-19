@@ -9,9 +9,11 @@ const path = require('path');
 const validator = require('email-validator'); // For email validation
 
 const app = express();
-const port = 3000;
 
-// MongoDB connection string from environment variable
+// Use environment variable PORT or fallback to 3000 for local testing
+const port = process.env.PORT || 3000;
+
+// MongoDB connection string from environment variable (MONGO_URI should be set in your Heroku Config Vars)
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('Error connecting to MongoDB:', err));
@@ -31,7 +33,7 @@ const User = mongoose.model('User', userSchema);
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
-  secret: 'supersecretkey',
+  secret: 'supersecretkey',  // Should be changed to a more secure key in production
   resave: false,
   saveUninitialized: true
 }));
@@ -129,7 +131,7 @@ app.get('/logout', (req, res) => {
   });
 });
 
-// ✅ Start server (for other devices too!)
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server running at http://0.0.0.0:${port}`);
+// ✅ Start server (Heroku will assign a PORT)
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
 });
