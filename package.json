@@ -1,22 +1,27 @@
 {
-  "name": "music-web",
+  "name": "syed-music-zone",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "A music website with login/signup functionality.",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "bcryptjs": "^3.0.2",
-    "body-parser": "^2.2.0",
-    "dotenv": "^16.5.0",
-    "email-validator": "^2.0.4",
-    "express": "^5.1.0",
-    "express-session": "^1.18.1",
-    "mongoose": "^8.13.2"
+    "bcrypt": "^5.0.1",
+    "connect-flash": "^0.1.1",
+    "dotenv": "^8.6.0",
+    "ejs": "^3.1.10",
+    "express": "^4.17.1",
+    "express-session": "^1.17.2",
+    "mongoose": "^5.10.9",
+    "passport": "^0.4.1",
+    "passport-local": "^1.0.0"
   },
-  "description": ""
+  "devDependencies": {
+    "nodemon": "^2.0.6"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
 }

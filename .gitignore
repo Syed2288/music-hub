@@ -1,23 +1,22 @@
-# Node modules (huge folder, don't push this)
-node_modules/
-
-# Environment variables (secrets like MongoDB URI)
-.env
+# Node.js dependencies
+/node_modules/
 
 # Logs
-*.log
-logs/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+/npm-debug.log*
+/yarn-debug.log*
+/yarn-error.log*
 
-# OS files
+# Environment variables
+.env
+
+# OS and IDE files
 .DS_Store
-Thumbs.db
-
-# Editor folders
 .vscode/
-*.swp
+.idea/
 
-# Heroku
-.heroku/
+# Build directory
+/dist/
+/build/
+
+# Optional: If you're using a database file (e.g., SQLite)
+*.db

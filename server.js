@@ -1,137 +1,131 @@
-require('dotenv').config();  // Load environment variables from .env file
-
 const express = require('express');
-const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
 const session = require('express-session');
-const path = require('path');
-const validator = require('email-validator'); // For email validation
+const flash = require('connect-flash');
+const User = require('./models/User');
+require('dotenv').config();
 
 const app = express();
 
-// Use environment variable PORT or fallback to 3000 for local testing
-const port = process.env.PORT || 3000;
-
-// MongoDB connection string from environment variable (MONGO_URI should be set in your Heroku Config Vars)
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('Error connecting to MongoDB:', err));
-
-// User Schema
-const userSchema = new mongoose.Schema({
-  fullname: String,
-  username: { type: String, unique: true },
-  email: { type: String, unique: true },
-  password: String
-});
-
-// Create a User model
-const User = mongoose.model('User', userSchema);
-
 // Middleware
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(express.static('public'));
+
+app.set('view engine', 'ejs');
+app.set('views', __dirname + '/views');
+
+// Session middleware
 app.use(session({
-  secret: 'supersecretkey',  // Should be changed to a more secure key in production
+  secret: process.env.SESSION_SECRET || 'secret-key',
   resave: false,
-  saveUninitialized: true
+  saveUninitialized: false
 }));
 
-// Serve the Signup page
-app.get('/signup', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'signup.html'));
-});
+app.use(flash());
+app.use(passport.initialize());
+app.use(passport.session());
 
-// Handle the Signup Form Submission
-app.post('/signup', async (req, res) => {
-  const { fullname, username, email, password, confirm_password } = req.body;
-
-  if (password !== confirm_password) {
-    return res.send('<h2>Passwords do not match. <a href="/signup">Try again</a></h2>');
-  }
-
-  if (!validator.validate(email)) {
-    return res.send('<h2>Invalid email format. <a href="/signup">Try again</a></h2>');
-  }
-
-  if (password.length < 6) {
-    return res.send('<h2>Password is too weak. It should be at least 6 characters. <a href="/signup">Try again</a></h2>');
-  }
-
-  try {
-    const existingUser = await User.findOne({ $or: [{ username }, { email }] });
-    if (existingUser) {
-      return res.send('<h2>User already exists. <a href="/signup">Try again</a></h2>');
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = new User({
-      fullname,
-      username,
-      email,
-      password: hashedPassword
-    });
-
-    await newUser.save();
-    res.redirect('/login');
-  } catch (error) {
-    console.error(error);
-    res.send('<h2>Error occurred during signup. Please try again.</h2>');
-  }
-});
-
-// Serve the Login page
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
-
-// Handle Login Form Submission
-app.post('/login', async (req, res) => {
-  const { username, password } = req.body;
-
+// Passport config
+passport.use(new LocalStrategy(async (username, password, done) => {
   try {
     const user = await User.findOne({ username });
-    if (!user) {
-      return res.send('<h2>User not found. <a href="/login">Try again</a></h2>');
-    }
+    if (!user) return done(null, false, { message: 'Incorrect username.' });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.send('<h2>Incorrect password. <a href="/login">Try again</a></h2>');
-    }
+    if (!isMatch) return done(null, false, { message: 'Incorrect password.' });
 
-    req.session.loggedIn = true;
-    req.session.username = user.username;
-
-    res.redirect('/');
-  } catch (error) {
-    console.error(error);
-    res.send('<h2>Error occurred during login. Please try again.</h2>');
+    return done(null, user);
+  } catch (err) {
+    return done(err);
   }
+}));
+
+passport.serializeUser((user, done) => done(null, user.id));
+passport.deserializeUser(async (id, done) => {
+  const user = await User.findById(id);
+  done(null, user);
 });
 
-// Serve Home Page (Dashboard)
-app.get('/', (req, res) => {
-  if (req.session.loggedIn) {
-    res.send(`<h1>Welcome ${req.session.username}!</h1><a href="/logout">Logout</a>`);
-  } else {
+// MongoDB connection
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000
+})
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch(err => console.log("❌ MongoDB Error:", err));
+
+// Routes
+app.get('/', (req, res) => res.redirect('/login'));
+
+app.get('/signup', (req, res) => {
+  res.render('signup', { messages: req.flash() });
+});
+
+app.post('/signup', async (req, res) => {
+  try {
+    const { fullname, username, email, password, confirm_password } = req.body;
+
+    if (password !== confirm_password) {
+      req.flash('error', 'Passwords do not match.');
+      return res.redirect('/signup');
+    }
+
+    // Check if username or email already exists
+    const existing = await User.findOne({ $or: [{ username }, { email }] });
+    if (existing) {
+      req.flash('error', 'Username or email already exists.');
+      return res.redirect('/signup');
+    }
+
+    // Hash password
+    const hashed = await bcrypt.hash(password, 10);
+
+    // Create new user
+    const newUser = new User({ fullname, username, email, password: hashed });
+
+    await newUser.save();
+    req.flash('success', 'Signup successful! Please login.');
     res.redirect('/login');
+  } catch (err) {
+    console.error(err);
+    req.flash('error', 'Something went wrong. Please try again.');
+    res.redirect('/signup');
   }
 });
 
-// Handle Logout
-app.get('/logout', (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return res.send('<h2>Error during logout.</h2>');
-    }
+app.get('/login', (req, res) => {
+  res.render('login', { messages: req.flash() });
+});
+
+app.post('/login', passport.authenticate('local', {
+  successRedirect: '/dashboard',
+  failureRedirect: '/login',
+  failureFlash: true
+}));
+
+app.get('/dashboard', (req, res) => {
+  if (!req.isAuthenticated()) {
+    req.flash('error', 'Login first to access dashboard.');
+    return res.redirect('/login');
+  }
+  res.send(`<h2>Welcome, ${req.user.username}!</h2><a href="/logout">Logout</a>`);
+});
+
+app.get('/logout', (req, res, next) => {
+  req.logout(err => {
+    if (err) return next(err);
+    req.flash('success', 'You have been logged out.');
     res.redirect('/login');
   });
 });
 
-// ✅ Start server (Heroku will assign a PORT)
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+// Start the server
+app.listen(3000, () => {
+  console.log('🚀 Server running at http://localhost:3000');
 });

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sign Up | Syed Music Zone</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: url('/images/syed-im.jpg') no-repeat center center fixed;
+      background-size: cover;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: #fff;
+    }
+
+    .signup-box {
+      background: rgba(30, 30, 30, 0.85);
+      padding: 40px 35px;
+      border-radius: 16px;
+      box-shadow: 0 0 25px rgba(29, 185, 84, 0.2);
+      text-align: center;
+      max-width: 450px;
+      width: 90%;
+      backdrop-filter: blur(8px);
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1 {
+      margin-bottom: 25px;
+      font-size: 2em;
+      color: #1DB954;
+      text-transform: uppercase;
+    }
+
+    input {
+      padding: 12px 15px;
+      margin: 10px 0;
+      border-radius: 10px;
+      border: 1px solid #333;
+      width: 100%;
+      background: #222;
+      color: #fff;
+      font-size: 1em;
+    }
+
+    input:focus {
+      border-color: #1DB954;
+      outline: none;
+    }
+
+    input::placeholder {
+      color: #aaa;
+    }
+
+    button {
+      padding: 12px 24px;
+      background: #1DB954;
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      font-size: 1em;
+      margin-top: 15px;
+      box-shadow: 0 0 10px rgba(29, 185, 84, 0.3);
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+
+    button:hover {
+      background: #1ed760;
+      box-shadow: 0 0 15px rgba(29, 185, 84, 0.5);
+    }
+
+    .footer-note {
+      margin-top: 20px;
+      font-size: 0.85em;
+      color: #888;
+    }
+
+    .footer-note a {
+      color: #1DB954;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .footer-note a:hover {
+      text-decoration: underline;
+    }
+
+    .error-message {
+      color: #ff4d4d;
+      font-size: 1.1em;
+      margin: 10px 0;
+    }
+
+    @media (max-width: 480px) {
+      .signup-box {
+        padding: 30px 20px;
+      }
+
+      h1 {
+        font-size: 1.5em;
+      }
+
+      input, button {
+        font-size: 0.95em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="signup-box">
+    <h1>Create Your Account</h1>
+
+    <!-- Display error message if there's any -->
+    <% if (messages.error && messages.error.length > 0) { %>
+      <div class="error-message"><%= messages.error[0] %></div>
+    <% } %>
+    <% if (messages.success && messages.success.length > 0) { %>
+      <div class="error-message" style="color: #1DB954;"><%= messages.success[0] %></div>
+    <% } %>
+
+    <form method="POST" action="/signup" id="signupForm">
+      <input type="text" name="fullname" placeholder="Full Name" required>
+      <input type="text" name="username" placeholder="Username" required>
+      <input type="email" name="email" placeholder="Email" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <input type="password" name="confirm_password" placeholder="Confirm Password" required>
+      <button type="submit">Sign Up</button>
+    </form>
+    <div class="footer-note">
+      Already have an account? <a href="/login">Login</a>
+    </div>
+  </div>
+
+  <script>
+    // Client-side validation
+    document.querySelector('form').addEventListener('submit', function(event) {
+      const password = document.querySelector('input[name="password"]');
+      const confirmPassword = document.querySelector('input[name="confirm_password"]');
+      const email = document.querySelector('input[name="email"]');
+      const errorMessageElement = document.getElementById('error-message');
+
+      // Validate password match
+      if (password.value !== confirmPassword.value) {
+        errorMessageElement.textContent = "Passwords do not match.";
+        event.preventDefault();  // Prevent form submission
+        return false;
+      }
+
+      // Validate email format (basic check)
+      const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailPattern.test(email.value)) {
+        errorMessageElement.textContent = "Please enter a valid email address.";
+        event.preventDefault();  // Prevent form submission
+        return false;
+      }
+    });
+  </script>
+</body>
+</html>
